@@ -44,6 +44,8 @@ bool PPCTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
   for (const auto &Feature : Features) {
     if (Feature == "+altivec") {
       HasAltivec = true;
+    } else if (Feature == "+vmx128") {
+      HasVMX128 = true;
     } else if (Feature == "+vsx") {
       HasVSX = true;
     } else if (Feature == "+power8-vector") {
@@ -300,8 +302,7 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
       getTriple().getArch() == llvm::Triple::ppcle) {
     Builder.defineMacro("_LITTLE_ENDIAN");
   } else {
-    if (!getTriple().isOSNetBSD() &&
-        !getTriple().isOSOpenBSD())
+    if (!getTriple().isOSNetBSD() && !getTriple().isOSOpenBSD())
       Builder.defineMacro("_BIG_ENDIAN");
   }
 
@@ -318,7 +319,7 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
     Builder.defineMacro("_CALL_LINUX", "1");
 
   // Subtarget options.
-  if (!getTriple().isOSAIX()){
+  if (!getTriple().isOSAIX()) {
     Builder.defineMacro("__NATURAL_ALIGNMENT__");
   }
   Builder.defineMacro("__REGISTER_PREFIX__", "");
@@ -560,10 +561,10 @@ bool PPCTargetInfo::initFeatureMap(
                                 .Case("pwr8", true)
                                 .Default(false);
   Features["crbits"] = llvm::StringSwitch<bool>(CPU)
-                                .Case("ppc64le", true)
-                                .Case("pwr9", true)
-                                .Case("pwr8", true)
-                                .Default(false);
+                           .Case("ppc64le", true)
+                           .Case("pwr9", true)
+                           .Case("pwr8", true)
+                           .Default(false);
   Features["vsx"] = llvm::StringSwitch<bool>(CPU)
                         .Case("ppc64le", true)
                         .Case("pwr9", true)
@@ -806,8 +807,7 @@ const char *const PPCTargetInfo::GCCRegNames[] = {
     "v4",  "v5",     "v6",   "v7",      "v8",      "v9",  "v10", "v11", "v12",
     "v13", "v14",    "v15",  "v16",     "v17",     "v18", "v19", "v20", "v21",
     "v22", "v23",    "v24",  "v25",     "v26",     "v27", "v28", "v29", "v30",
-    "v31", "vrsave", "vscr", "spe_acc", "spefscr", "sfp"
-};
+    "v31", "vrsave", "vscr", "spe_acc", "spefscr", "sfp"};
 
 ArrayRef<const char *> PPCTargetInfo::getGCCRegNames() const {
   return llvm::ArrayRef(GCCRegNames);
@@ -935,4 +935,44 @@ bool PPCTargetInfo::validateCpuIs(StringRef CPUName) const {
   return Triple.isOSLinux()
              ? (SuppportMethod.first != BUILTIN_PPC_UNSUPPORTED)
              : (SuppportMethod.second != BUILTIN_PPC_UNSUPPORTED);
+}
+
+XenonPPC64TargetInfo::XenonPPC64TargetInfo(const llvm::Triple &Triple,
+                                           const TargetOptions &Opts)
+    : WindowsTargetInfo<PPC64TargetInfo>(Triple, Opts) {
+  TheCXXABI.set(TargetCXXABI::Microsoft);
+}
+
+void XenonPPC64TargetInfo::getTargetDefines(const LangOptions &Opts,
+                                            MacroBuilder &Builder) const {
+  WindowsTargetInfo<PPC64TargetInfo>::getTargetDefines(Opts, Builder);
+  Builder.defineMacro("_XBOX", "1");
+  Builder.defineMacro("_XBOX_VER", "200");
+  Builder.defineMacro("__VMX128_SUPPORTED", "1");
+  Builder.defineMacro("_M_PPC", "5401");
+  Builder.defineMacro("_M_PPCBE", "1");
+}
+
+TargetInfo::BuiltinVaListKind XenonPPC64TargetInfo::getBuiltinVaListKind() const
+{
+  return CharPtrBuiltinVaList;
+}
+
+TargetInfo::CallingConvCheckResult XenonPPC64TargetInfo::checkCallingConvention(CallingConv CC) const {
+  switch (CC) {
+  case CC_X86StdCall:
+  case CC_X86ThisCall:
+  case CC_X86FastCall:
+  case CC_X86VectorCall:
+    return CCCR_Ignore;
+  case CC_C:
+  case CC_OpenCLKernel:
+  case CC_PreserveMost:
+  case CC_PreserveAll:
+  case CC_Swift:
+  case CC_SwiftAsync:
+    return CCCR_OK;
+  default:
+    return CCCR_Warning;
+  }
 }

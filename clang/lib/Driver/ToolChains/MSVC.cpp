@@ -31,12 +31,12 @@
 #include <cstdio>
 
 #ifdef _WIN32
-  #define WIN32_LEAN_AND_MEAN
-  #define NOGDI
-  #ifndef NOMINMAX
-    #define NOMINMAX
-  #endif
-  #include <windows.h>
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 #endif
 
 using namespace clang::driver;
@@ -96,48 +96,52 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-defaultlib:oldnames");
   }
 
-  // If the VC environment hasn't been configured (perhaps because the user
-  // did not run vcvarsall), try to build a consistent link environment.  If
-  // the environment variable is set however, assume the user knows what
-  // they're doing. If the user passes /vctoolsdir or /winsdkdir, trust that
-  // over env vars.
-  if (const Arg *A = Args.getLastArg(options::OPT__SLASH_diasdkdir,
-                                     options::OPT__SLASH_winsysroot)) {
-    // cl.exe doesn't find the DIA SDK automatically, so this too requires
-    // explicit flags and doesn't automatically look in "DIA SDK" relative
-    // to the path we found for VCToolChainPath.
-    llvm::SmallString<128> DIAPath(A->getValue());
-    if (A->getOption().getID() == options::OPT__SLASH_winsysroot)
-      llvm::sys::path::append(DIAPath, "DIA SDK");
+  if (TC.getTriple().isXbox360()) {
+    // TODO: Xbox 360 SDK lib paths
+  } else {
+    // If the VC environment hasn't been configured (perhaps because the user
+    // did not run vcvarsall), try to build a consistent link environment.  If
+    // the environment variable is set however, assume the user knows what
+    // they're doing. If the user passes /vctoolsdir or /winsdkdir, trust that
+    // over env vars.
+    if (const Arg *A = Args.getLastArg(options::OPT__SLASH_diasdkdir,
+                                       options::OPT__SLASH_winsysroot)) {
+      // cl.exe doesn't find the DIA SDK automatically, so this too requires
+      // explicit flags and doesn't automatically look in "DIA SDK" relative
+      // to the path we found for VCToolChainPath.
+      llvm::SmallString<128> DIAPath(A->getValue());
+      if (A->getOption().getID() == options::OPT__SLASH_winsysroot)
+        llvm::sys::path::append(DIAPath, "DIA SDK");
 
-    // The DIA SDK always uses the legacy vc arch, even in new MSVC versions.
-    llvm::sys::path::append(DIAPath, "lib",
-                            llvm::archToLegacyVCArch(TC.getArch()));
-    CmdArgs.push_back(Args.MakeArgString(Twine("-libpath:") + DIAPath));
-  }
-  if (!llvm::sys::Process::GetEnv("LIB") ||
-      Args.getLastArg(options::OPT__SLASH_vctoolsdir,
-                      options::OPT__SLASH_winsysroot)) {
-    CmdArgs.push_back(Args.MakeArgString(
-        Twine("-libpath:") +
-        TC.getSubDirectoryPath(llvm::SubDirectoryType::Lib)));
-    CmdArgs.push_back(Args.MakeArgString(
-        Twine("-libpath:") +
-        TC.getSubDirectoryPath(llvm::SubDirectoryType::Lib, "atlmfc")));
-  }
-  if (!llvm::sys::Process::GetEnv("LIB") ||
-      Args.getLastArg(options::OPT__SLASH_winsdkdir,
-                      options::OPT__SLASH_winsysroot)) {
-    if (TC.useUniversalCRT()) {
-      std::string UniversalCRTLibPath;
-      if (TC.getUniversalCRTLibraryPath(Args, UniversalCRTLibPath))
-        CmdArgs.push_back(
-            Args.MakeArgString(Twine("-libpath:") + UniversalCRTLibPath));
+      // The DIA SDK always uses the legacy vc arch, even in new MSVC versions.
+      llvm::sys::path::append(DIAPath, "lib",
+                              llvm::archToLegacyVCArch(TC.getArch()));
+      CmdArgs.push_back(Args.MakeArgString(Twine("-libpath:") + DIAPath));
     }
-    std::string WindowsSdkLibPath;
-    if (TC.getWindowsSDKLibraryPath(Args, WindowsSdkLibPath))
-      CmdArgs.push_back(
-          Args.MakeArgString(std::string("-libpath:") + WindowsSdkLibPath));
+    if (!llvm::sys::Process::GetEnv("LIB") ||
+        Args.getLastArg(options::OPT__SLASH_vctoolsdir,
+                        options::OPT__SLASH_winsysroot)) {
+      CmdArgs.push_back(Args.MakeArgString(
+          Twine("-libpath:") +
+          TC.getSubDirectoryPath(llvm::SubDirectoryType::Lib)));
+      CmdArgs.push_back(Args.MakeArgString(
+          Twine("-libpath:") +
+          TC.getSubDirectoryPath(llvm::SubDirectoryType::Lib, "atlmfc")));
+    }
+    if (!llvm::sys::Process::GetEnv("LIB") ||
+        Args.getLastArg(options::OPT__SLASH_winsdkdir,
+                        options::OPT__SLASH_winsysroot)) {
+      if (TC.useUniversalCRT()) {
+        std::string UniversalCRTLibPath;
+        if (TC.getUniversalCRTLibraryPath(Args, UniversalCRTLibPath))
+          CmdArgs.push_back(
+              Args.MakeArgString(Twine("-libpath:") + UniversalCRTLibPath));
+      }
+      std::string WindowsSdkLibPath;
+      if (TC.getWindowsSDKLibraryPath(Args, WindowsSdkLibPath))
+        CmdArgs.push_back(
+            Args.MakeArgString(std::string("-libpath:") + WindowsSdkLibPath));
+    }
   }
 
   if (!C.getDriver().IsCLMode() && Args.hasArg(options::OPT_L))
@@ -214,10 +218,10 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
         find(begin(defines), end(defines), "_DLL") != end(defines)) {
       // Make sure the dynamic runtime thunk is not optimized out at link time
       // to ensure proper SEH handling.
-      CmdArgs.push_back(Args.MakeArgString(
-          TC.getArch() == llvm::Triple::x86
-              ? "-include:___asan_seh_interceptor"
-              : "-include:__asan_seh_interceptor"));
+      CmdArgs.push_back(
+          Args.MakeArgString(TC.getArch() == llvm::Triple::x86
+                                 ? "-include:___asan_seh_interceptor"
+                                 : "-include:__asan_seh_interceptor"));
       // Make sure the linker consider all object files from the dynamic runtime
       // thunk.
       CmdArgs.push_back(Args.MakeArgString(
@@ -558,10 +562,16 @@ bool MSVCToolChain::getWindowsSDKLibraryPath(const ArgList &Args,
   std::string windowsSDKLibVersion;
 
   path.clear();
-  if (!llvm::getWindowsSDKDir(getVFS(), WinSdkDir, WinSdkVersion, WinSysRoot,
-                              sdkPath, sdkMajor, windowsSDKIncludeVersion,
-                              windowsSDKLibVersion))
-    return false;
+
+  if (getTriple().isXbox360()) {
+    if (!llvm::getXbox360SDKDir(getVFS(), sdkPath))
+      return false;
+  } else {
+    if (!llvm::getWindowsSDKDir(getVFS(), WinSdkDir, WinSdkVersion, WinSysRoot,
+                                sdkPath, sdkMajor, windowsSDKIncludeVersion,
+                                windowsSDKLibVersion))
+      return false;
+  }
 
   llvm::SmallString<128> libPath(sdkPath);
   llvm::sys::path::append(libPath, "Lib");
@@ -615,8 +625,8 @@ static VersionTuple getMSVCVersionFromExe(const std::string &BinDir) {
   if (!llvm::ConvertUTF8toWide(ClExe.c_str(), ClExeWide))
     return Version;
 
-  const DWORD VersionSize = ::GetFileVersionInfoSizeW(ClExeWide.c_str(),
-                                                      nullptr);
+  const DWORD VersionSize =
+      ::GetFileVersionInfoSizeW(ClExeWide.c_str(), nullptr);
   if (VersionSize == 0)
     return Version;
 
@@ -633,7 +643,7 @@ static VersionTuple getMSVCVersionFromExe(const std::string &BinDir) {
     return Version;
 
   const unsigned Major = (FileInfo->dwFileVersionMS >> 16) & 0xFFFF;
-  const unsigned Minor = (FileInfo->dwFileVersionMS      ) & 0xFFFF;
+  const unsigned Minor = (FileInfo->dwFileVersionMS) & 0xFFFF;
   const unsigned Micro = (FileInfo->dwFileVersionLS >> 16) & 0xFFFF;
 
   Version = VersionTuple(Major, Minor, Micro);
@@ -708,81 +718,94 @@ void MSVCToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
       return;
   }
 
-  // When built with access to the proper Windows APIs, try to actually find
-  // the correct include paths first.
-  if (!VCToolChainPath.empty()) {
-    addSystemInclude(DriverArgs, CC1Args,
-                     getSubDirectoryPath(llvm::SubDirectoryType::Include));
-    addSystemInclude(
-        DriverArgs, CC1Args,
-        getSubDirectoryPath(llvm::SubDirectoryType::Include, "atlmfc"));
-
-    if (useUniversalCRT()) {
-      std::string UniversalCRTSdkPath;
-      std::string UCRTVersion;
-      if (llvm::getUniversalCRTSdkDir(getVFS(), WinSdkDir, WinSdkVersion,
-                                      WinSysRoot, UniversalCRTSdkPath,
-                                      UCRTVersion)) {
-        if (!(WinSdkDir.has_value() || WinSysRoot.has_value()) &&
-            WinSdkVersion.has_value())
-          UCRTVersion = *WinSdkVersion;
-        AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, UniversalCRTSdkPath,
-                                      "Include", UCRTVersion, "ucrt");
-      }
+  if (getTriple().isXbox360()) {
+    std::string Path;
+    if (llvm::getXbox360SDKDir(getVFS(), Path)) {
+      AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, Path, "include",
+                                    "xbox");
+      return;
     }
+  } else {
+    // When built with access to the proper Windows APIs, try to actually find
+    // the correct include paths first.
+    if (!VCToolChainPath.empty()) {
+      addSystemInclude(DriverArgs, CC1Args,
+                       getSubDirectoryPath(llvm::SubDirectoryType::Include));
+      addSystemInclude(
+          DriverArgs, CC1Args,
+          getSubDirectoryPath(llvm::SubDirectoryType::Include, "atlmfc"));
 
-    std::string WindowsSDKDir;
-    int major = 0;
-    std::string windowsSDKIncludeVersion;
-    std::string windowsSDKLibVersion;
-    if (llvm::getWindowsSDKDir(getVFS(), WinSdkDir, WinSdkVersion, WinSysRoot,
-                               WindowsSDKDir, major, windowsSDKIncludeVersion,
-                               windowsSDKLibVersion)) {
-      if (major >= 10)
-        if (!(WinSdkDir.has_value() || WinSysRoot.has_value()) &&
-            WinSdkVersion.has_value())
-          windowsSDKIncludeVersion = windowsSDKLibVersion = *WinSdkVersion;
-      if (major >= 8) {
-        // Note: windowsSDKIncludeVersion is empty for SDKs prior to v10.
-        // Anyway, llvm::sys::path::append is able to manage it.
-        AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
-                                      "Include", windowsSDKIncludeVersion,
-                                      "shared");
-        AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
-                                      "Include", windowsSDKIncludeVersion,
-                                      "um");
-        AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
-                                      "Include", windowsSDKIncludeVersion,
-                                      "winrt");
-        if (major >= 10) {
-          llvm::VersionTuple Tuple;
-          if (!Tuple.tryParse(windowsSDKIncludeVersion) &&
-              Tuple.getSubminor().value_or(0) >= 17134) {
-            AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
-                                          "Include", windowsSDKIncludeVersion,
-                                          "cppwinrt");
-          }
+      if (useUniversalCRT()) {
+        std::string UniversalCRTSdkPath;
+        std::string UCRTVersion;
+        if (llvm::getUniversalCRTSdkDir(getVFS(), WinSdkDir, WinSdkVersion,
+                                        WinSysRoot, UniversalCRTSdkPath,
+                                        UCRTVersion)) {
+          if (!(WinSdkDir.has_value() || WinSysRoot.has_value()) &&
+              WinSdkVersion.has_value())
+            UCRTVersion = *WinSdkVersion;
+          AddSystemIncludeWithSubfolder(DriverArgs, CC1Args,
+                                        UniversalCRTSdkPath, "Include",
+                                        UCRTVersion, "ucrt");
         }
-      } else {
-        AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
-                                      "Include");
       }
-    }
 
-    return;
+      std::string WindowsSDKDir;
+      int major = 0;
+      std::string windowsSDKIncludeVersion;
+      std::string windowsSDKLibVersion;
+      if (llvm::getWindowsSDKDir(getVFS(), WinSdkDir, WinSdkVersion, WinSysRoot,
+                                 WindowsSDKDir, major, windowsSDKIncludeVersion,
+                                 windowsSDKLibVersion)) {
+        if (major >= 10)
+          if (!(WinSdkDir.has_value() || WinSysRoot.has_value()) &&
+              WinSdkVersion.has_value())
+            windowsSDKIncludeVersion = windowsSDKLibVersion = *WinSdkVersion;
+        if (major >= 8) {
+          // Note: windowsSDKIncludeVersion is empty for SDKs prior to v10.
+          // Anyway, llvm::sys::path::append is able to manage it.
+          AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
+                                        "Include", windowsSDKIncludeVersion,
+                                        "shared");
+          AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
+                                        "Include", windowsSDKIncludeVersion,
+                                        "um");
+          AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
+                                        "Include", windowsSDKIncludeVersion,
+                                        "winrt");
+          if (major >= 10) {
+            llvm::VersionTuple Tuple;
+            if (!Tuple.tryParse(windowsSDKIncludeVersion) &&
+                Tuple.getSubminor().value_or(0) >= 17134) {
+              AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
+                                            "Include", windowsSDKIncludeVersion,
+                                            "cppwinrt");
+            }
+          }
+        } else {
+          AddSystemIncludeWithSubfolder(DriverArgs, CC1Args, WindowsSDKDir,
+                                        "Include");
+        }
+      }
+
+      return;
+    }
   }
 
 #if defined(_WIN32)
   // As a fallback, select default install paths.
   // FIXME: Don't guess drives and paths like this on Windows.
-  const StringRef Paths[] = {
-    "C:/Program Files/Microsoft Visual Studio 10.0/VC/include",
-    "C:/Program Files/Microsoft Visual Studio 9.0/VC/include",
-    "C:/Program Files/Microsoft Visual Studio 9.0/VC/PlatformSDK/Include",
-    "C:/Program Files/Microsoft Visual Studio 8/VC/include",
-    "C:/Program Files/Microsoft Visual Studio 8/VC/PlatformSDK/Include"
-  };
-  addSystemIncludes(DriverArgs, CC1Args, Paths);
+  const StringRef Win32Paths[] = {
+      "C:/Program Files/Microsoft Visual Studio 10.0/VC/include",
+      "C:/Program Files/Microsoft Visual Studio 9.0/VC/include",
+      "C:/Program Files/Microsoft Visual Studio 9.0/VC/PlatformSDK/Include",
+      "C:/Program Files/Microsoft Visual Studio 8/VC/include",
+      "C:/Program Files/Microsoft Visual Studio 8/VC/PlatformSDK/Include"};
+  const StringRef Xbox360Paths[] = {
+      "C:/Program Files (x86)/Microsoft Xbox 360 SDK/include/xbox",
+      "C:/Program Files/Microsoft Xbox 360 SDK/include/xbox"};
+  addSystemIncludes(DriverArgs, CC1Args,
+                    *(getTriple().isXbox360() ? Xbox360Paths : Win32Paths));
 #endif
 }
 
@@ -890,7 +913,8 @@ static void TranslateOptArg(Arg *A, llvm::opt::DerivedArgList &DAL,
           DAL.AddFlagArg(A, Opts.getOption(options::OPT_fno_inline));
           break;
         case '1':
-          DAL.AddFlagArg(A, Opts.getOption(options::OPT_finline_hint_functions));
+          DAL.AddFlagArg(A,
+                         Opts.getOption(options::OPT_finline_hint_functions));
           break;
         case '2':
         case '3':
@@ -925,11 +949,10 @@ static void TranslateOptArg(Arg *A, llvm::opt::DerivedArgList &DAL,
       }
       if (SupportsForcingFramePointer) {
         if (OmitFramePointer)
-          DAL.AddFlagArg(A,
-                         Opts.getOption(options::OPT_fomit_frame_pointer));
+          DAL.AddFlagArg(A, Opts.getOption(options::OPT_fomit_frame_pointer));
         else
-          DAL.AddFlagArg(
-              A, Opts.getOption(options::OPT_fno_omit_frame_pointer));
+          DAL.AddFlagArg(A,
+                         Opts.getOption(options::OPT_fno_omit_frame_pointer));
       } else {
         // Don't warn about /Oy- in x86-64 builds (where
         // SupportsForcingFramePointer is false).  The flag having no effect

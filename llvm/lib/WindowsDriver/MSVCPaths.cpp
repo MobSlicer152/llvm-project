@@ -327,6 +327,9 @@ bool appendArchToWindowsSDKLibPath(int SDKMajor, SmallString<128> LibPath,
     case Triple::thumb:
       // It is not necessary to link against Windows SDK 7.x when targeting ARM.
       return false;
+    case Triple::ppc64:
+      sys::path::append(LibPath, "xbox");
+      break;
     default:
       return false;
     }
@@ -396,6 +399,15 @@ bool useUniversalCRT(ToolsetLayout VSLayout, const std::string &VCToolChainPath,
       SubDirectoryType::Include, VSLayout, VCToolChainPath, TargetArch));
   sys::path::append(TestPath, "stdlib.h");
   return !VFS.exists(TestPath);
+}
+
+bool getXbox360SDKDir(vfs::FileSystem &VFS, std::string &Path) {
+  if (std::optional<std::string> XEDK = sys::Process::GetEnv("XEDK")) {
+    Path = std::move(*XEDK);
+    return true;
+  }
+
+  return false;
 }
 
 bool getWindowsSDKDir(vfs::FileSystem &VFS, std::optional<StringRef> WinSdkDir,

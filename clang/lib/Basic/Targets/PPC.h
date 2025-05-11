@@ -58,6 +58,7 @@ class LLVM_LIBRARY_VISIBILITY PPCTargetInfo : public TargetInfo {
 
   // Target cpu features.
   bool HasAltivec = false;
+  bool HasVMX128 = false;
   bool HasMMA = false;
   bool HasROPProtect = false;
   bool HasVSX = false;
@@ -452,6 +453,16 @@ public:
       LongDoubleWidth = 64;
       LongDoubleAlign = DoubleAlign = 32;
       LongDoubleFormat = &llvm::APFloat::IEEEdouble();
+    } else if (Triple.isXbox360()) {
+      // Xenon is ILP32 on a 64-bit CPU
+      DataLayout = "E-m:e-p:32:32-Fi64-i64:64-i128:128-n32:64";
+      LongWidth = LongAlign = PointerWidth = PointerAlign = 32;
+      SizeType = UnsignedInt;
+      PtrDiffType = SignedInt;
+      IntPtrType = SignedInt;
+      IntMaxType = SignedLongLong;
+      Int64Type = SignedLongLong;
+      LongDoubleWidth = 64;
     } else if ((Triple.getArch() == llvm::Triple::ppc64le)) {
       DataLayout = "e-m:e-Fn32-i64:64-i128:128-n32:64";
       ABI = "elfv2";
@@ -467,7 +478,8 @@ public:
       DataLayout += "-i64:64-i128:128-n32:64";
     }
 
-    if (Triple.isOSFreeBSD() || Triple.isOSOpenBSD() || Triple.isMusl()) {
+    if (Triple.isOSFreeBSD() || Triple.isOSOpenBSD() || Triple.isMusl() ||
+        Triple.isXbox360()) {
       LongDoubleWidth = LongDoubleAlign = 64;
       LongDoubleFormat = &llvm::APFloat::IEEEdouble();
     }
@@ -519,8 +531,8 @@ public:
   }
 };
 
-class LLVM_LIBRARY_VISIBILITY AIXPPC32TargetInfo :
-  public AIXTargetInfo<PPC32TargetInfo> {
+class LLVM_LIBRARY_VISIBILITY AIXPPC32TargetInfo
+    : public AIXTargetInfo<PPC32TargetInfo> {
 public:
   using AIXTargetInfo::AIXTargetInfo;
   BuiltinVaListKind getBuiltinVaListKind() const override {
@@ -528,10 +540,23 @@ public:
   }
 };
 
-class LLVM_LIBRARY_VISIBILITY AIXPPC64TargetInfo :
-  public AIXTargetInfo<PPC64TargetInfo> {
+class LLVM_LIBRARY_VISIBILITY AIXPPC64TargetInfo
+    : public AIXTargetInfo<PPC64TargetInfo> {
 public:
   using AIXTargetInfo::AIXTargetInfo;
+};
+
+class LLVM_LIBRARY_VISIBILITY XenonPPC64TargetInfo
+    : public WindowsTargetInfo<PPC64TargetInfo> {
+public:
+  XenonPPC64TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts);
+
+  void getTargetDefines(const LangOptions &Opts,
+                        MacroBuilder &Builder) const override;
+
+  BuiltinVaListKind getBuiltinVaListKind() const override;
+
+  CallingConvCheckResult checkCallingConvention(CallingConv CC) const override;
 };
 
 } // namespace targets

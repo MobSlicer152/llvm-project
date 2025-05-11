@@ -277,7 +277,7 @@ static void addVisualCDefines(const LangOptions &Opts, MacroBuilder &Builder) {
 void addWindowsDefines(const llvm::Triple &Triple, const LangOptions &Opts,
                        MacroBuilder &Builder) {
   Builder.defineMacro("_WIN32");
-  if (Triple.isArch64Bit())
+  if (Triple.isArch64Bit() && !Triple.isXbox360())
     Builder.defineMacro("_WIN64");
   if (Triple.isWindowsGNUEnvironment())
     addMinGWDefines(Triple, Opts, Builder);

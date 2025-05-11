@@ -166,8 +166,8 @@ static std::string getDataLayoutString(const Triple &T) {
   Ret += DataLayout::getManglingComponent(T);
 
   // PPC32 has 32 bit pointers. The PS3 (OS Lv2) is a PPC64 machine with 32 bit
-  // pointers.
-  if (!is64Bit || T.getOS() == Triple::Lv2)
+  // pointers. Xbox 360 is the same.
+  if (!is64Bit || T.getOS() == Triple::Lv2 || T.isXbox360())
     Ret += "-p:32:32";
 
   // If the target ABI uses function descriptors, then the alignment of function

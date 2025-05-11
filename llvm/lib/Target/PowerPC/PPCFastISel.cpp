@@ -2044,7 +2044,7 @@ Register PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
   if (Subtarget->isUsingPCRelativeCalls())
     return Register();
 
-  assert(VT == MVT::i64 && "Non-address!");
+  //assert(VT == MVT::i64 && "Non-address!");
   const TargetRegisterClass *RC = &PPC::G8RC_and_G8RC_NOX0RegClass;
   Register DestReg = createResultReg(RC);
 

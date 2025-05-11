@@ -63,6 +63,9 @@ bool useUniversalCRT(ToolsetLayout VSLayout, const std::string &VCToolChainPath,
                      llvm::Triple::ArchType TargetArch,
                      llvm::vfs::FileSystem &VFS);
 
+/// Get Xbox 360 SDK installation directory
+bool getXbox360SDKDir(vfs::FileSystem &VFS, std::string &Path);
+
 /// Get Windows SDK installation directory.
 bool getWindowsSDKDir(vfs::FileSystem &VFS,
                       std::optional<llvm::StringRef> WinSdkDir,
