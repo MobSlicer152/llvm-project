@@ -49,6 +49,8 @@ StringRef COFFImportFile::getFileFormatName() const {
     return "COFF-import-file-ARM64EC";
   case COFF::IMAGE_FILE_MACHINE_ARM64X:
     return "COFF-import-file-ARM64X";
+  case COFF::IMAGE_FILE_MACHINE_POWERPCBE:
+    return "COFF-import-file-ppc64";
   default:
     return "COFF-import-file-<unknown arch>";
   }

@@ -455,7 +455,7 @@ public:
       LongDoubleFormat = &llvm::APFloat::IEEEdouble();
     } else if (Triple.isXbox360()) {
       // Xenon is ILP32 on a 64-bit CPU
-      DataLayout = "E-m:e-p:32:32-Fi64-i64:64-i128:128-n32:64";
+      DataLayout = "E-m:w-p:32:32-Fi64-i64:64-i128:128-n32:64";
       LongWidth = LongAlign = PointerWidth = PointerAlign = 32;
       SizeType = UnsignedInt;
       PtrDiffType = SignedInt;

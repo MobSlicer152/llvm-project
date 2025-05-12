@@ -59,7 +59,7 @@
 #include <sys/types.h>
 
 #if defined(_WIN64)
-typedef signed __int64 ssize_t;
+typedef signed long long ssize_t;
 #else
 typedef signed int ssize_t;
 #endif /* _WIN64 */

@@ -239,6 +239,8 @@ static std::string computeFSAdditions(StringRef FS, CodeGenOptLevel OL,
 static std::unique_ptr<TargetLoweringObjectFile> createTLOF(const Triple &TT) {
   if (TT.isOSAIX())
     return std::make_unique<TargetLoweringObjectFileXCOFF>();
+  else if (TT.isXbox360())
+    return std::make_unique<TargetLoweringObjectFileCOFF>();
 
   return std::make_unique<PPC64LinuxTargetObjectFile>();
 }
@@ -257,7 +259,9 @@ static PPCTargetMachine::PPCABI computeTargetABI(const Triple &TT,
   case Triple::ppc64le:
     return PPCTargetMachine::PPC_ABI_ELFv2;
   case Triple::ppc64:
-    if (TT.isPPC64ELFv2ABI())
+    if (TT.isXbox360())
+      return PPCTargetMachine::PPC_ABI_XBOX360;
+    else if (TT.isPPC64ELFv2ABI())
       return PPCTargetMachine::PPC_ABI_ELFv2;
     else
       return PPCTargetMachine::PPC_ABI_ELFv1;
@@ -299,7 +303,8 @@ getEffectivePPCCodeModel(const Triple &TT, std::optional<CodeModel::Model> CM,
   if (TT.isOSAIX())
     return CodeModel::Small;
 
-  assert(TT.isOSBinFormatELF() && "All remaining PPC OSes are ELF based.");
+  // nuh uh, xbox 360 is coff
+  //assert(TT.isOSBinFormatELF() && "All remaining PPC OSes are ELF based.");
 
   if (TT.isArch32Bit())
     return CodeModel::Small;

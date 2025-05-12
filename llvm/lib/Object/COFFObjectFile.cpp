@@ -1134,6 +1134,8 @@ StringRef COFFObjectFile::getFileFormatName() const {
     return "COFF-ARM64X";
   case COFF::IMAGE_FILE_MACHINE_R4000:
     return "COFF-MIPS";
+  case COFF::IMAGE_FILE_MACHINE_POWERPCBE:
+    return "COFF-PPC64";
   default:
     return "COFF-<unknown arch>";
   }
@@ -2348,6 +2350,9 @@ ResourceSectionRef::getContents(const coff_resource_data_entry &Entry) {
       break;
     case Triple::aarch64:
       RVAReloc = COFF::IMAGE_REL_ARM64_ADDR32NB;
+      break;
+    case Triple::ppc64:
+      RVAReloc = COFF::IMAGE_REL_PPC_ADDR32NB;
       break;
     default:
       return createStringError(object_error::parse_failed,

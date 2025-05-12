@@ -990,6 +990,8 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
 
   case Triple::ppc64:
   case Triple::ppc:
+    if (T.isOSWindows())
+      return Triple::COFF;
     if (T.isOSAIX())
       return Triple::XCOFF;
     if (T.isOSDarwin())

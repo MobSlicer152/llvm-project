@@ -157,3 +157,25 @@ PPCXCOFFMCAsmInfo::PPCXCOFFMCAsmInfo(bool Is64Bit, const Triple &T) {
 
   initializeVariantKinds(variantKindDescs);
 }
+
+void PPCWinCOFFMCAsmInfo::anchor() {}
+
+PPCWinCOFFMCAsmInfo::PPCWinCOFFMCAsmInfo(bool Is64Bit, const Triple &T) {
+  if (T.getArch() == Triple::ppc64le || T.getArch() == Triple::ppcle)
+    report_fatal_error("WinCOFF is not supported for little-endian targets");
+  CodePointerSize = CalleeSaveStackSlotSize = Is64Bit ? 8 : 4;
+
+  // A size of 8 is only supported by the assembler under 64-bit.
+  Data64bitsDirective = Is64Bit ? "\t.vbyte\t8, " : nullptr;
+
+  // Debug Information
+  SupportsDebugInformation = true;
+
+  // Set up DWARF directives
+  MinInstAlignment = 4;
+
+  // Support $ as PC in inline asm
+  DollarIsPC = true;
+
+  initializeVariantKinds(variantKindDescs);
+}

@@ -25,6 +25,7 @@ COFF::MachineTypes llvm::getMachineType(StringRef S) {
   return StringSwitch<COFF::MachineTypes>(S.lower())
       .Cases("x64", "amd64", COFF::IMAGE_FILE_MACHINE_AMD64)
       .Cases("x86", "i386", COFF::IMAGE_FILE_MACHINE_I386)
+      .Cases("ppc", "ppc64", "ppcbe", COFF::IMAGE_FILE_MACHINE_POWERPCBE)
       .Case("arm", COFF::IMAGE_FILE_MACHINE_ARMNT)
       .Case("arm64", COFF::IMAGE_FILE_MACHINE_ARM64)
       .Case("arm64ec", COFF::IMAGE_FILE_MACHINE_ARM64EC)
@@ -47,6 +48,8 @@ StringRef llvm::machineToStr(COFF::MachineTypes MT) {
     return "x64";
   case COFF::IMAGE_FILE_MACHINE_I386:
     return "x86";
+  case COFF::IMAGE_FILE_MACHINE_POWERPCBE:
+    return "ppc64";
   default:
     llvm_unreachable("unknown machine type");
   }

@@ -526,7 +526,7 @@ MCSymbol *PPCAsmPrinter::lookUpOrCreateTOCEntry(const MCSymbol *Sym,
 
 void PPCAsmPrinter::LowerSTACKMAP(StackMaps &SM, const MachineInstr &MI) {
   unsigned NumNOPBytes = MI.getOperand(1).getImm();
-  
+
   auto &Ctx = OutStreamer->getContext();
   MCSymbol *MILabel = Ctx.createTempSymbol();
   OutStreamer->emitLabel(MILabel);
@@ -3177,7 +3177,7 @@ void PPCAIXAsmPrinter::emitInstruction(const MachineInstr *MI) {
   case PPC::TD:
   case PPC::TDI: {
     if (MI->getNumOperands() < 5)
-      break; 
+      break;
     const MachineOperand &LangMO = MI->getOperand(3);
     const MachineOperand &ReasonMO = MI->getOperand(4);
     if (!LangMO.isImm() || !ReasonMO.isImm())
@@ -3347,6 +3347,8 @@ void PPCAIXAsmPrinter::emitTTypeReference(const GlobalValue *GV,
     OutStreamer->emitIntValue(0, GetSizeOfEncodedValue(Encoding));
 }
 
+static char PPCXbox360AsmPrinter_ID = 0;
+
 // Return a pass that prints the PPC assembly code for a MachineFunction to the
 // given output stream.
 static AsmPrinter *
@@ -3354,6 +3356,8 @@ createPPCAsmPrinterPass(TargetMachine &tm,
                         std::unique_ptr<MCStreamer> &&Streamer) {
   if (tm.getTargetTriple().isOSAIX())
     return new PPCAIXAsmPrinter(tm, std::move(Streamer));
+  else if (tm.getTargetTriple().isXbox360())
+    return new PPCAsmPrinter(tm, std::move(Streamer), PPCXbox360AsmPrinter_ID);
 
   return new PPCLinuxAsmPrinter(tm, std::move(Streamer));
 }

@@ -9,6 +9,8 @@ add_llvm_component_library(LLVMPowerPCDesc
   PPCELFObjectWriter.cpp
   PPCXCOFFObjectWriter.cpp
   PPCELFStreamer.cpp
+  PPCWinCOFFObjectWriter.cpp
+  PPCWinCOFFStreamer.cpp
   PPCXCOFFStreamer.cpp
 
   LINK_COMPONENTS
